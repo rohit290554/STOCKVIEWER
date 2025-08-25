@@ -1,210 +1,462 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Stock Dashboard</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NSE Stock Dashboard</title>
 <style>
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #f4f6f8;
-  color: #333;
-}
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f8;
+    margin: 20px;
+    color: #333;
+  }
+  h1 {
+    color: #1f3c88;
+    margin-bottom: 15px;
+  }
+  .tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .tab-button {
+    background-color: #e0e2f3;
+    border: none;
+    padding: 10px 18px;
+    cursor: pointer;
+    border-radius: 5px 5px 0 0;
+    font-weight: 600;
+    color: #322f6d;
+    transition: background-color 0.3s ease;
+  }
+  .tab-button.active {
+    background-color: #322f6d;
+    color: #fff;
+  }
+  .tab-content {
+    background-color: white;
+    padding: 15px 20px;
+    border-radius: 0 10px 10px 10px;
+    box-shadow: 0 0 12px rgb(50 47 109 / 0.2);
+    min-height: 350px;
+    overflow-x: auto;
+  }
+  #symbol-input {
+    margin-bottom: 20px;
+    padding: 8px 10px;
+    font-size: 16px;
+    width: 180px;
+  }
+  #fetch-button {
+    padding: 8px 16px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #322f6d;
+    border: none;
+    border-radius: 5px;
+    color: white;
+  }
+  #error-msg {
+    color: red;
+    margin-top: 10px;
+  }
 
-.container {
-  max-width: 1200px;
-  margin: 20px auto;
-  padding: 0 15px;
-}
+  /* Option Chain Table Styles */
+  .option-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .option-table thead tr {
+    background: #322f6d;
+    color: #fff;
+  }
+  .option-table thead th {
+    padding: 8px 6px;
+    border: 1px solid #48467a;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .option-table tbody tr:hover {
+    background-color: #e8eaff;
+  }
+  .option-table tbody td {
+    border: 1px solid #d1d1f2;
+    padding: 6px 5px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .strike {
+    background: #322f6d;
+    color: #ff9f1c;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .change-positive {
+    color: #007a00;
+    font-weight: bold;
+  }
+  .change-negative {
+    color: #d60000;
+    font-weight: bold;
+  }
+  .link-like {
+    color: #0a5dc1;
+    font-weight: bold;
+    text-decoration: underline;
+    cursor: pointer;
+  }
 
-/* Header */
-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-header h1 {
-  color: #1f3c88;
-  font-size: 32px;
-  margin: 0;
-}
-
-/* Controls */
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 25px;
-}
-
-input[type=text] {
-  padding: 10px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  min-width: 180px;
-}
-
-button {
-  padding: 10px 16px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: none;
-  background-color: #1f3c88;
-  color: white;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-button:hover {
-  background-color: #15306b;
-}
-
-/* Result Cards */
-.result {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-/* Card style */
-.card {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.card h2 {
-  margin-top: 0;
-  font-size: 20px;
-  color: #1f3c88;
-}
-
-/* Table inside card */
-.card table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-.card th, .card td {
-  padding: 8px 10px;
-  text-align: left;
-}
-
-.card th {
-  background-color: #1f3c88;
-  color: white;
-  font-weight: 600;
-}
-
-.card tr:nth-child(even) { background-color: #f2f2f2; }
-.card tr:hover { background-color: #e0e7ff; }
-
-/* Collapsible nested objects */
-.collapsible {
-  cursor: pointer;
-  color: #1f3c88;
-  text-decoration: underline;
-}
-
-.nested {
-  display: none;
-  margin-left: 15px;
-  margin-top: 5px;
-}
-
-/* Responsive */
-@media(max-width:768px){
-  .controls { flex-direction: column; align-items: center; }
-  input[type=text], button { width: 90%; }
-  .card table, .card th, .card td { font-size: 12px; }
-}
+  /* New tables for Quote, Details, History */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .data-table th, .data-table td {
+    border: 1px solid #ccc;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .data-table th {
+    background-color: #322f6d;
+    color: white;
+    font-weight: 600;
+    width: 200px;
+  }
+  .data-table tbody tr:nth-child(even) {
+    background-color: #f9f9fa;
+  }
+  .collapsible {
+    cursor: pointer;
+    color: #0a5dc1;
+    text-decoration: underline;
+    font-weight: 600;
+  }
+  .nested-content {
+    margin-top: 5px;
+    margin-left: 15px;
+    display: none;
+  }
 </style>
 </head>
 <body>
 
-<div class="container">
-<header>
-  <h1>Stock Dashboard</h1>
-</header>
+<h1>NSE Stock Dashboard</h1>
 
-<div class="controls">
-  <input type="text" id="symbol" placeholder="Enter Stock Symbol">
-  <button onclick="getQuote()">Quote</button>
-  <button onclick="getDetails()">Details</button>
-  <button onclick="getOptions()">Options</button>
-  <button onclick="getHistory()">History</button>
+<input id="symbol-input" placeholder="Enter NSE Symbol e.g. INFY" />
+<button id="fetch-button">Fetch Data</button>
+<div id="error-msg"></div>
+
+<div class="tabs">
+  <button class="tab-button active" data-tab="quote">Quote</button>
+  <button class="tab-button" data-tab="details">Details</button>
+  <button class="tab-button" data-tab="options">Options</button>
+  <button class="tab-button" data-tab="history">History</button>
 </div>
 
-<div id="output" class="result">Results will appear here...</div>
+<div id="quote" class="tab-content">
+  <h2>Quote</h2>
+  <div id="quote-content">Enter a symbol and fetch data.</div>
+</div>
+
+<div id="details" class="tab-content" style="display:none;">
+  <h2>Details</h2>
+  <div id="details-content">Enter a symbol and fetch data.</div>
+</div>
+
+<div id="options" class="tab-content" style="display:none;">
+  <h2>Option Chain (Equity Derivatives)</h2>
+  <div id="options-content">Enter a symbol and fetch data.</div>
+</div>
+
+<div id="history" class="tab-content" style="display:none;">
+  <h2>History</h2>
+  <div id="history-content">Enter a symbol and fetch data.</div>
 </div>
 
 <script>
-const API_BASE="/stock";
+  // Tabs switching
+  const buttons = document.querySelectorAll('.tab-button');
+  const tabs = document.querySelectorAll('.tab-content');
 
-function renderData(data, title="Data") {
-  if(typeof data !== "object" || data === null) return `<div class="card"><h2>${title}</h2><div>${data}</div></div>`;
+  buttons.forEach(button => {
+    button.addEventListener('click', () => {
+      buttons.forEach(btn => btn.classList.remove('active'));
+      tabs.forEach(tab => tab.style.display = 'none');
 
-  // Arrays
-  if(Array.isArray(data)){
-    if(data.length === 0) return `<div class="card"><h2>${title}</h2><div>No data</div></div>`;
-    const headers = Object.keys(data[0]||{});
-    const tableRows = data.map(row=>`<tr>${headers.map(h=>`<td>${renderCell(row[h])}</td>`).join('')}</tr>`).join('');
-    return `<div class="card"><h2>${title}</h2>
-      <div style="overflow-x:auto">
-      <table>
-        <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
-        <tbody>${tableRows}</tbody>
-      </table>
-      </div>
-    </div>`;
-  }
-
-  // Object
-  const rows = Object.entries(data).map(([key,val])=>{
-    if(typeof val==="object" && val !== null) return `<tr><th>${key}</th><td><span class="collapsible">View</span><div class="nested">${renderData(val,key)}</div></td></tr>`;
-    return `<tr><th>${key}</th><td>${val}</td></tr>`;
-  }).join('');
-  return `<div class="card"><h2>${title}</h2><table>${rows}</table></div>`;
-}
-
-function renderCell(cell){
-  if(typeof cell === "object" && cell !== null) return `<span class="collapsible">View</span><div class="nested">${renderData(cell)}</div>`;
-  return cell;
-}
-
-function enableCollapsibles(){
-  document.querySelectorAll(".collapsible").forEach(el=>{
-    el.onclick = ()=>{
-      const nested = el.nextElementSibling;
-      if(nested){
-        if(nested.style.display === "block"){nested.style.display="none"; el.textContent="View";}
-        else{nested.style.display="block"; el.textContent="Hide";}
-      }
-    };
+      button.classList.add('active');
+      document.getElementById(button.getAttribute('data-tab')).style.display = 'block';
+    });
   });
-}
 
-async function fetchAPI(url){
-  try{
-    const response = await fetch(url);
-    const data = await response.json();
-    const output = document.getElementById("output");
-    if(data.status==="error"){ output.innerHTML = `<div style="color:red">${data.message}</div>`;}
-    else{ output.innerHTML = renderData(data,"Stock Data"); enableCollapsibles();}
-  }catch(err){
-    document.getElementById("output").innerHTML = `<div style="color:red">Error: ${err}</div>`;
+  const symbolInput = document.getElementById('symbol-input');
+  const fetchBtn = document.getElementById('fetch-button');
+  const errorMsg = document.getElementById('error-msg');
+
+  fetchBtn.addEventListener('click', () => {
+    const symbol = symbolInput.value.trim().toUpperCase();
+    if (!symbol.match(/^[A-Z0-9]+$/)) {
+      errorMsg.textContent = "Please enter a valid NSE symbol (alphanumeric only).";
+      return;
+    }
+    errorMsg.textContent = "";
+    fetchAllData(symbol);
+  });
+
+  function fetchAllData(symbol) {
+    fetchQuote(symbol);
+    fetchDetails(symbol);
+    fetchOptions(symbol);
+    fetchHistory(symbol);
   }
-}
 
-function getQuote(){ const s=document.getElementById("symbol").value.trim().toUpperCase(); fetchAPI(`${API_BASE}/${s}/quote`); }
-function getDetails(){ const s=document.getElementById("symbol").value.trim().toUpperCase(); fetchAPI(`${API_BASE}/${s}/details`); }
-function getOptions(){ const s=document.getElementById("symbol").value.trim().toUpperCase(); fetchAPI(`${API_BASE}/${s}/options`); }
-function getHistory(){ const s=document.getElementById("symbol").value.trim().toUpperCase(); fetchAPI(`${API_BASE}/${s}/history?period=1mo&interval=1d`); }
+  // Helper: Render object as a table with collapsible nested objects
+  function renderObjectTable(obj) {
+    if (!obj || typeof obj !== 'object') return document.createTextNode(String(obj));
+
+    const table = document.createElement('table');
+    table.className = 'data-table';
+    const tbody = document.createElement('tbody');
+
+    for (const [key, val] of Object.entries(obj)) {
+      const tr = document.createElement('tr');
+      const th = document.createElement('th');
+      th.textContent = key;
+      tr.appendChild(th);
+
+      const td = document.createElement('td');
+
+      if (val && typeof val === 'object') {
+        // collapsible nested object
+        const coll = document.createElement('span');
+        coll.textContent = '[+] View';
+        coll.className = 'collapsible';
+        td.appendChild(coll);
+
+        const nestedDiv = document.createElement('div');
+        nestedDiv.className = 'nested-content';
+        nestedDiv.appendChild(renderObjectTable(val));
+        td.appendChild(nestedDiv);
+
+        coll.onclick = () => {
+          if (nestedDiv.style.display === 'block') {
+            nestedDiv.style.display = 'none';
+            coll.textContent = '[+] View';
+          } else {
+            nestedDiv.style.display = 'block';
+            coll.textContent = '[-] Hide';
+          }
+        };
+      } else {
+        td.textContent = val !== null && val !== undefined ? val : '-';
+      }
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    return table;
+  }
+
+  // Helper: Render array of objects as table, with keys as headers
+  function renderArrayTable(arr) {
+    if (!Array.isArray(arr) || arr.length === 0) {
+      return document.createTextNode('No data available.');
+    }
+    // gather all keys
+    const keys = new Set();
+    arr.forEach(item => {
+      if (typeof item === 'object' && item !== null) {
+        Object.keys(item).forEach(k => keys.add(k));
+      }
+    });
+    const headers = Array.from(keys);
+
+    const table = document.createElement('table');
+    table.className = 'data-table';
+    const thead = document.createElement('thead');
+    const trHead = document.createElement('tr');
+    headers.forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    arr.forEach(item => {
+      const tr = document.createElement('tr');
+      headers.forEach(h => {
+        const td = document.createElement('td');
+        const val = item[h];
+        if (val && typeof val === 'object') {
+          td.appendChild(renderObjectTable(val));
+        } else {
+          td.textContent = val !== null && val !== undefined ? val : '-';
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+  }
+
+  // Fetch Quote
+  function fetchQuote(symbol) {
+    const quoteContent = document.getElementById('quote-content');
+    quoteContent.textContent = 'Loading...';
+    fetch(`/stock/${symbol}/quote`)
+      .then(res => res.json())
+      .then(data => {
+        if(data.status === 'success') {
+          quoteContent.innerHTML = '';
+          quoteContent.appendChild(renderObjectTable(data.data));
+        } else {
+          quoteContent.textContent = `Error: ${data.message}`;
+        }
+      })
+      .catch(err => {
+        quoteContent.textContent = 'Error fetching quote.';
+      });
+  }
+
+  // Fetch Details
+  function fetchDetails(symbol) {
+    const detailsContent = document.getElementById('details-content');
+    detailsContent.textContent = 'Loading...';
+    fetch(`/stock/${symbol}/details`)
+      .then(res => res.json())
+      .then(data => {
+        if(data.status === 'success') {
+          detailsContent.innerHTML = '';
+          detailsContent.appendChild(renderObjectTable(data.data));
+        } else {
+          detailsContent.textContent = `Error: ${data.message}`;
+        }
+      })
+      .catch(err => {
+        detailsContent.textContent = 'Error fetching details.';
+      });
+  }
+
+  // Fetch History
+  function fetchHistory(symbol) {
+    const historyContent = document.getElementById('history-content');
+    historyContent.textContent = 'Loading...';
+    fetch(`/stock/${symbol}/history`)
+      .then(res => res.json())
+      .then(data => {
+        if(data.status === 'success') {
+          historyContent.innerHTML = '';
+          // If data.history is array, render table
+          if (Array.isArray(data.history)) {
+            historyContent.appendChild(renderArrayTable(data.history));
+          } else {
+            historyContent.appendChild(renderObjectTable(data.history));
+          }
+        } else {
+          historyContent.textContent = `Error: ${data.message}`;
+        }
+      })
+      .catch(err => {
+        historyContent.textContent = 'Error fetching history.';
+      });
+  }
+
+  // Fetch Options with styled table like screenshot
+  function fetchOptions(symbol) {
+    const optionsDiv = document.getElementById('options-content');
+    optionsDiv.innerHTML = 'Loading...';
+
+    fetch(`/stock/${symbol}/options`)
+      .then(res => res.json())
+      .then(data => {
+        if(data.status !== 'success' || !data.data) {
+          optionsDiv.textContent = `Error: ${data.message || 'No options data available.'}`;
+          return;
+        }
+
+        // Data format: data.data contains option chain info
+        // We'll build the table like screenshot using data.data.records.data
+
+        const optionChain = data.data;
+        const records = optionChain.records;
+        if (!records || !records.data) {
+          optionsDiv.textContent = 'No option chain data found.';
+          return;
+        }
+
+        // Build header with Calls and Puts
+        let html = `<table class="option-table">
+          <thead>
+            <tr>
+              <th colspan="9">CALLS</th>
+              <th>STRIKE</th>
+              <th colspan="9">PUTS</th>
+            </tr>
+            <tr>
+              <th>OI</th><th>CHNG IN OI</th><th>VOLUME</th><th>IV</th><th>LTP</th><th>CHNG</th><th>BID QTY</th><th>BID</th><th>ASK</th>
+              <th class="strike">Strike Price</th>
+              <th>BID QTY</th><th>BID</th><th>ASK</th><th>ASK QTY</th><th>CHNG</th><th>LTP</th><th>IV</th><th>VOLUME</th><th>CHNG IN OI</th><th>OI</th>
+            </tr>
+          </thead><tbody>`;
+
+        // Helper to format values and classes
+        const formatNum = (val) => val !== undefined && val !== null ? val : '-';
+
+        const formatChange = (val) => {
+          if (val === undefined || val === null || val === '-') return '-';
+          if (typeof val === 'string') val = parseFloat(val.replace(/,/g, '')) || 0;
+          return val > 0 ? `<span class="change-positive">${val}</span>` :
+                 val < 0 ? `<span class="change-negative">${val}</span>` : val;
+        };
+
+        const linkCell = (val) => `<span class="link-like">${val}</span>`;
+
+        // Iterate each record and render row
+        records.data.forEach(row => {
+          const call = row.CE || {};
+          const put = row.PE || {};
+          html += `<tr>
+            <td>${formatNum(call.openInterest)}</td>
+            <td>${formatChange(call.changeinOpenInterest)}</td>
+            <td>${formatNum(call.totalTradedVolume)}</td>
+            <td>${formatNum(call.impliedVolatility)}</td>
+            <td>${linkCell(call.lastPrice)}</td>
+            <td>${formatChange(call.change)}</td>
+            <td>${formatNum(call.bidQty)}</td>
+            <td>${formatNum(call.bidPrice)}</td>
+            <td>${formatNum(call.askPrice)}</td>
+
+            <td class="strike link-like">${formatNum(row.strikePrice)}</td>
+
+            <td>${formatNum(put.bidQty)}</td>
+            <td>${formatNum(put.bidPrice)}</td>
+            <td>${formatNum(put.askPrice)}</td>
+            <td>${formatNum(put.askQty)}</td>
+            <td>${formatChange(put.change)}</td>
+            <td>${linkCell(put.lastPrice)}</td>
+            <td>${formatNum(put.impliedVolatility)}</td>
+            <td>${formatNum(put.totalTradedVolume)}</td>
+            <td>${formatChange(put.changeinOpenInterest)}</td>
+            <td>${formatNum(put.openInterest)}</td>
+          </tr>`;
+        });
+
+        html += '</tbody></table>';
+
+        optionsDiv.innerHTML = html;
+
+      })
+      .catch(err => {
+        optionsDiv.textContent = 'Error fetching options data.';
+      });
+  }
+
 </script>
 
 </body>
