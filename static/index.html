@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stock Dashboard</title>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f4f6f8;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 15px;
+}
+
+/* Header */
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+header h1 {
+  color: #1f3c88;
+  font-size: 32px;
+  margin: 0;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+input[type=text] {
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  min-width: 180px;
+}
+
+button {
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  background-color: #1f3c88;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  background-color: #15306b;
+}
+
+/* Result Cards */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Card style */
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 20px;
+  color: #1f3c88;
+}
+
+/* Table inside card */
+.card table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.card th, .card td {
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.card th {
+  background-color: #1f3c88;
+  color: white;
+  font-weight: 600;
+}
+
+.card tr:nth-child(even) { background-color: #f2f2f2; }
+.card tr:hover { background-color: #e0e7ff; }
+
+/* Collapsible nested objects */
+.collapsible {
+  cursor: pointer;
+  color: #1f3c88;
+  text-decoration: underline;
+}
+
+.nested {
+  display: none;
+  margin-left: 15px;
+  margin-top: 5px;
+}
+
+/* Responsive */
+@media(max-width:768px){
+  .controls { flex-direction: column; align-items: center; }
+  input[type=text], button { width: 90%; }
+  .card table, .card th, .card td { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<header>
+  <h1>Stock Dashboard</h1>
+</header>
+
+<div class="controls">
+  <input type="text" id="symbol" placeholder="Enter Stock Symbol">
+  <button onclick="getQuote()">Quote</button>
+  <button onclick="getDetails()">Details</button>
+  <button onclick="getOptions()">Options</button>
+  <button onclick="getHistory()">History</button>
+</div>
+
+<div id="output" class="result">Results will appear here...</div>
+</div>
+
+<script>
+const API_BASE="/stock";
+
+function renderData(data, title="Data") {
+  if(typeof data !== "object" || data === null) return `<div class="card"><h2>${title}</h2><div>${data}</div></div>`;
+
+  // Arrays
+  if(Array.isArray(data)){
+    if(data.length === 0) return `<div class="card"><h2>${title}</h2><div>No data</div></div>`;
+    const headers = Object.keys(data[0]||{});
+    const tableRows = data.map(row=>`<tr>${headers.map(h=>`<td>${renderCell(row[h])}</td>`).join('')}</tr>`).join('');
+    return `<div class="card"><h2>${title}</h2>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+      </div>
+    </div>`;
+  }
+
+  // Object
+  const rows = Object.entries(data).map(([key,val])=>{
+    if(typeof val==="object" && val !== null) return `<tr><th>${key}</th><td><span class="collapsible">View</span><div class="nested">${renderData(val,key)}</div></td></tr>`;
+    return `<tr><th>${key}</th><td>${val}</td></tr>`;
+  }).join('');
+  return `<div class="card"><h2>${title}</h2><table>${rows}</table></div>`;
+}
+
+function renderCell(cell){
+  if(typeof cell === "object" && cell !== null) return `<span class="collapsible">View</span><div class="nested">${renderData(cell)}</div>`;
+  return cell;
+}
+
+function enableCollapsibles(){
+  document.querySelectorAll(".collapsible").forEach(el=>{
+    el.onclick = ()=>{
+      const nested = el.nextElementSibling;
+      if(nested){
+        if(nested.style.display === "block"){nested.style.display="none"; el.textContent="View";}
+        else{nested.style.display="block"; el.textContent="Hide";}
+      }
+    };
+  });
+}
+
+async function fetchAPI(url){
+  try{
+    const response = await fetch(url);
+    const data = await response.json();
+    const output = document.getElementById("output");
+    if(data.status==="error"){ output.innerHTML = `<div style="color:red">${data.message}</div>`;}
+    else{ output.innerHTML = renderData(data,"Stock Data"); enableCollapsibles();}
+  }catch(err){
+    document.getElementById("output").innerHTML = `<div style="color:red">Error: ${err}</div>`;
+  }
+}
+
+function getQuote(){ const s=document.getElementById("symbol").value.trim().toUpperCase(); fetchAPI(`${API_BASE}/${s}/quote`); }
+function getDetails(){ const s=document.getElementById("symbol").value.trim().toUpperCase(); fetchAPI(`${API_BASE}/${s}/details`); }
+function getOptions(){ const s=document.getElementById("symbol").value.trim().toUpperCase(); fetchAPI(`${API_BASE}/${s}/options`); }
+function getHistory(){ const s=document.getElementById("symbol").value.trim().toUpperCase(); fetchAPI(`${API_BASE}/${s}/history?period=1mo&interval=1d`); }
+</script>
+
+</body>
+</html>
