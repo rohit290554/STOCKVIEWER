@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Finance Data</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f6f8; color: #333; }
+    h2 { color: #1f3c88; }
+    #result p { margin: 5px 0; }
+    canvas { max-width: 100%; margin-top: 20px; }
+    .charts { display: flex; flex-wrap: wrap; gap: 30px; }
+    .chart-container { flex: 1 1 45%; }
+  </style>
+</head>
+<body>
+  <h2>Finance Data</h2>
+  <input type="text" id="symbol" placeholder="Enter NSE symbol" style="display:none;">
+  <div id="result"></div>
+
+  <div class="charts">
+    <div class="chart-container">
+      <canvas id="historyChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="financeChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+  function getQuerySymbol() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('symbol') || '';
+  }
+
+  async function fetchFinance(symbol) {
+    if (!symbol) return;
+
+    try {
+      // Fetch finance summary
+      const res = await fetch(`/finance/${symbol}`);
+      const json = await res.json();
+      if(json.status === "success") {
+        const d = json.data;
+        document.getElementById("result").innerHTML = `
+          <h3>Finance Summary: ${symbol}</h3>
+          <p><b>Market Cap:</b> ${d["Market Cap"]}</p>
+          <p><b>PE Ratio:</b> ${d["PE Ratio"]}</p>
+          <p><b>PB Ratio:</b> ${d["PB Ratio"]}</p>
+          <p><b>EPS:</b> ${d["EPS"]}</p>
+          <p><b>Dividend Yield:</b> ${d["Dividend Yield"]}</p>
+          <p><b>52 Week High:</b> ${d["52 Week High"]}</p>
+          <p><b>52 Week Low:</b> ${d["52 Week Low"]}</p>
+        `;
+
+        // Finance metrics chart
+        const financeMetrics = {
+          "PE Ratio": d["PE Ratio"] || 0,
+          "PB Ratio": d["PB Ratio"] || 0,
+          "EPS": d["EPS"] || 0,
+          "Dividend Yield": (d["Dividend Yield"] || 0) * 100,
+          "Market Cap (B ₹)": d["Market Cap"] ? (d["Market Cap"]/1e9).toFixed(2) : 0
+        };
+
+        const ctxFinance = document.getElementById('financeChart').getContext('2d');
+        new Chart(ctxFinance, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(financeMetrics),
+            datasets: [{
+              label: `${symbol} Metrics`,
+              data: Object.values(financeMetrics),
+              backgroundColor: '#1f3c88'
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { title: { display: true, text: 'Value' } } }
+          }
+        });
+      } else {
+        document.getElementById("result").innerText = "Error: " + json.message;
+      }
+
+      // Fetch historical data
+      const histRes = await fetch(`/stock/${symbol}/history`);
+      const histJson = await histRes.json();
+      if(histJson.status === "success" && Array.isArray(histJson.history)) {
+        const labels = histJson.history.map(h => new Date(h.Date).toLocaleDateString());
+        const closes = histJson.history.map(h => h.Close);
+        const opens = histJson.history.map(h => h.Open);
+        const highs = histJson.history.map(h => h.High);
+        const lows = histJson.history.map(h => h.Low);
+        const volumes = histJson.history.map(h => h.Volume);
+
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: `${symbol} Closing Price`,
+              data: closes,
+              borderColor: '#1f3c88',
+              backgroundColor: 'rgba(31,60,136,0.1)',
+              fill: true,
+              tension: 0.2,
+              pointRadius: 4,
+              pointHoverRadius: 7
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: true },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const i = context.dataIndex;
+                    return [
+                      `Open: ₹${opens[i]}`,
+                      `High: ₹${highs[i]}`,
+                      `Low: ₹${lows[i]}`,
+                      `Close: ₹${closes[i]}`,
+                      `Volume: ${volumes[i].toLocaleString()}`
+                    ];
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { title: { display: true, text: 'Date' } },
+              y: { title: { display: true, text: 'Close Price (₹)' } }
+            }
+          }
+        });
+      }
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById("result").innerText = "Failed to fetch data";
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const symbol = getQuerySymbol();
+    if(symbol) fetchFinance(symbol);
+  });
+</script>
+
+</body>
+</html>

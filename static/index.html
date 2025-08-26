@@ -155,6 +155,16 @@
   <button class="tab-button" data-tab="details">Details</button>
   <button class="tab-button" data-tab="options">Options</button>
   <button class="tab-button" data-tab="history">History</button>
+    <a href="#" class="tab-button" onclick="goToFinance()" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">Finance</a>
+
+<script>
+  function goToFinance() {
+    const symbol = document.getElementById("symbol-input").value.trim().toUpperCase();
+    if (!symbol) return alert("Please enter a symbol first!");
+    window.location.href = `finance.html?symbol=${symbol}`;
+  }
+</script>
+
 </div>
 
 <div id="quote" class="tab-content">
